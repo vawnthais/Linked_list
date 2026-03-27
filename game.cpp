@@ -713,7 +713,7 @@ void endGame(const RunConfig& config, GameSetup& gameSetup, GameResult& gameResu
 void initBoard(char board[][BOARD_N_MAX], const int size);
 bool isValidMove(const char board[][BOARD_N_MAX], const int size, const int row, const int col);
 void makeMove(char board[][BOARD_N_MAX], const int row, const int col, const char symbol);
-bool isEmptyHead(char board[][BOARD_N_MAX], int size, int x, int y, const char symbol, int huong);
+bool isEmptyHead(char board[][BOARD_N_MAX], int size, int x, int y, const char symbol);
 bool checkWin(char board[][BOARD_N_MAX], const int size, const char symbol, const int goal, EndRule rule);
 bool checkDraw(char board[][BOARD_N_MAX], const int size);
 
@@ -1445,11 +1445,11 @@ void showResult(const int winner, const bool is_bot) {
         std::cout << GameLogger::BLUE << "     No one won this battle...   \n" << GameLogger::RESET;
     } else {
         if (is_bot) {
-            std::cout << GameLogger::RED << "   GAME OVER: Bot " << winner << " wins!  \n" << GameLogger::RESET;
+            std::cout << GameLogger::RED << "   GAME OVER: Bot " << winner + 1<< " wins!  \n" << GameLogger::RESET;
             std::cout << GameLogger::RED << "   Better luck next time!  \n" << GameLogger::RESET;
         } else {
             std::cout << GameLogger::GREEN << "     CONGRATULATIONS!!!       \n" << GameLogger::RESET;
-            std::cout << GameLogger::GREEN << "   Player " << winner << " is the winner! \n" << GameLogger::RESET;
+            std::cout << GameLogger::GREEN << "   Player " << winner + 1 << " is the winner! \n" << GameLogger::RESET;
         }
     }
     std::cout << GameLogger::YELLOW << "==============================\n" << GameLogger::RESET;
@@ -1459,7 +1459,7 @@ void printResult(const GameResult& gameResult) {
     if (gameResult.winner == -1) {
         std::cout << GameLogger::BLUE << "[Game finished] Draw! | Total moves: " << gameResult.turns << ".\n" << GameLogger::RESET;
     } else {
-        std::cout << GameLogger::GREEN << "[Game finished] Winner: Player " << gameResult.winner << " | Total moves: " << gameResult.turns << ".\n" << GameLogger::RESET;
+        std::cout << GameLogger::GREEN << "[Game finished] Winner: Player " << gameResult.winner + 1 << " | Total moves: " << gameResult.turns << ".\n" << GameLogger::RESET;
     }
 }
 
@@ -1621,7 +1621,7 @@ GameResult playGame(const RunConfig& config,
     // 2. Main game loop
     while(true) {
         const char* modeNames[] = {"PvP", "PvE", "EvE"};
-        const char* ruleNames[] = {"Normal", "Open One", "Open Two"};
+        const char* ruleNames[] = {"None", "Open One", "Open Two"};
 
         std::cout << GameLogger::GREEN 
                 << std::format("Game mode: {}, game rule: {}\n", 
@@ -1766,7 +1766,7 @@ void endGame(const RunConfig& config,
     // printResult(gameResult);
     if (config.judge_mode) printResult(gameResult);
     // 3. (optional) log result using GameLogger
-    GameLogger::log("Winner " + std::to_string(gameResult.winner), GameLogger::Level::INFO);
+    GameLogger::log("Winner " + std::to_string(gameResult.winner + 1), GameLogger::Level::INFO);
 }
 
 /* ---------- Game Logic ---------- */
@@ -1860,33 +1860,13 @@ bool isEmptyHead(char board[][BOARD_N_MAX],
                  int size,
                  int x,
                  int y,
-                 const char symbol, int huong) {
+                 const char symbol) {
     // TODO: checking empty head, using for checkWin
     // An empty head can be:
     // - on board boundary
     // - is empty symbol ('-')
     // - equal to current symbol
-    //check theo hàng
-    if (huong == 1) {
-        if (y-1 < 0 || (board[x][y-1] == '-' || board[x][y+1] == symbol)) return true;
-        if (y+1 >= size || (board[x][y+1] == '-' || board[x][y-1] == symbol)) return true;
-    }
-    //check theo cột
-    if (huong == 2) {
-        if (x-1 < 0 || (board[x-1][y] == '-' || board[x-1][y] == symbol)) return true;
-        if (x+1 >= size || (board[x+1][y] == '-' || board[x+1][y] == symbol)) return true;
-
-    }
-    //check theo đường chéo chính
-    if (huong == 3) {
-        if ((x-1 < 0 || y-1 < 0) || (board[x-1][y-1] =='-' || board[x-1][y-1] == symbol)) return true;
-        if ((x+1 >= size || y+1 >= size) || (board[x+1][y+1] =='-' || board[x+1][y+1] == symbol)) return true;
-    }
-    //check theo đường chéo phụ
-    if (huong == 4) {
-        if ((x-1 < 0 || y+1 >= size) || (board[x-1][y+1] =='-' || board[x-1][y+1] == symbol)) return true;
-        if ((x+1 >= size || y-1 >= 0) || (board[x+1][y-1] =='-' ||  board[x+1][y-1] == symbol)) return true;
-    }
+    if (y < 0 || y>= size || x < 0 || x>= size || (board[x][y] == '-' || board[x][y] == symbol)) return true;
     return false;
 }
 
@@ -1936,9 +1916,9 @@ bool checkWin(char board[][BOARD_N_MAX],
                 if (count == goal) {
                     if (rule == EndRule::NONE) return true;
                     if (rule == EndRule::OPEN_ONE) {
-                        if (isEmptyHead(board, size, row, col, symbol, 1) || isEmptyHead(board, size, row, col + goal -1, symbol, 1 )) return true;
+                        if (isEmptyHead(board, size, row, col -1, symbol) || isEmptyHead(board, size, row, col + goal, symbol)) return true;
                     } else if (rule == EndRule::OPEN_TWO) {
-                        if (isEmptyHead(board, size, row, col,symbol, 1) && isEmptyHead(board, size, row, col + goal -1, symbol, 1 )) return true;
+                        if (isEmptyHead(board, size, row, col-1,symbol) && isEmptyHead(board, size, row, col + goal, symbol)) return true;
                     }
                 }
             }
@@ -1957,9 +1937,9 @@ bool checkWin(char board[][BOARD_N_MAX],
                 if (count == goal) {
                     if (rule == EndRule::NONE) return true;
                     if (rule == EndRule::OPEN_ONE) {
-                        if (isEmptyHead(board, size, row, col,symbol, 2) || isEmptyHead(board, size, row + goal -1, col, symbol, 2 )) return true;
+                        if (isEmptyHead(board, size, row - 1, col,symbol) || isEmptyHead(board, size, row + goal, col, symbol)) return true;
                     } else if (rule == EndRule::OPEN_TWO) {
-                        if (isEmptyHead(board, size, row, col,symbol, 2) && isEmptyHead(board, size, row + goal -1, col, symbol, 2 )) return true;
+                        if (isEmptyHead(board, size, row - 1, col,symbol) && isEmptyHead(board, size, row + goal, col, symbol)) return true;
                     }
                 }
             }
@@ -1979,9 +1959,9 @@ bool checkWin(char board[][BOARD_N_MAX],
                 if (count == goal) {
                     if(rule == EndRule::NONE) return true;
                     if(rule == EndRule::OPEN_ONE) {
-                        if (isEmptyHead(board,size, row+goal-1,col+goal-1,symbol, 3) || isEmptyHead(board,size, row,col,symbol, 3)) return true;
+                        if (isEmptyHead(board,size, row+goal,col+goal,symbol) || isEmptyHead(board,size, row-1,col-1,symbol)) return true;
                     } else if (rule == EndRule::OPEN_TWO) {
-                        if (isEmptyHead(board,size, row+goal-1,col+goal-1,symbol, 3) && isEmptyHead(board,size, row,col,symbol, 3)) return true;
+                        if (isEmptyHead(board,size, row+goal,col+goal,symbol) && isEmptyHead(board,size, row -1,col-1,symbol)) return true;
                     }
                 }
             }
@@ -2000,10 +1980,10 @@ bool checkWin(char board[][BOARD_N_MAX],
                 if (count == goal) {
                     if (rule == EndRule::NONE) return true;
                     if (rule == EndRule::OPEN_ONE) {
-                        if (isEmptyHead(board, size, row + goal -1, col - goal + 1, symbol, 4) || isEmptyHead(board, size, row, col, symbol, 4)) return true;
+                        if (isEmptyHead(board, size, row + goal, col - goal, symbol) || isEmptyHead(board, size, row-1, col+1, symbol)) return true;
                     }
                     if (rule == EndRule::OPEN_TWO) {
-                        if (isEmptyHead(board, size, row + goal -1, col - goal + 1, symbol, 4) && isEmptyHead(board, size, row, col, symbol, 4)) return true;
+                        if (isEmptyHead(board, size, row + goal, col - goal, symbol) && isEmptyHead(board, size, row-1, col+1, symbol)) return true;
                     }
 
                 }
@@ -2166,7 +2146,7 @@ pII simple_heuristic(char board[][BOARD_N_MAX],
                      const char botSymbol,
                      const char playerSymbol) {
     // TODO: student implementation
-
+    
     // fallback
     return random_pick(board, size);
 }
