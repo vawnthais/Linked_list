@@ -1500,59 +1500,47 @@ void startGame(const RunConfig& config,
                GameSetup& gameSetup) {
     // TODO:
     // 1. Clear screen if interactive mode
-    if (config.interactive) clearScreen();
-    // 2. Show game title
-    showSelectMenu(SelectType::TITLE_UI);
+if (config.interactive) clearScreen();
+showSelectMenu(SelectType::TITLE_UI);
 
-    // 3. Ask user for board size
-    // repeat until valid:
-    // showSelectMenu(SelectType::SIZE_UI);
-    // selectSize(&gameSetup.size);
-    showSelectMenu(SelectType::SIZE_UI);
-    while (!selectSize(&gameSetup.size)) {
-        std::cout << GameLogger::RED << "Enter the valid size of board: " << GameLogger::RESET;
-    }
+showSelectMenu(SelectType::SIZE_UI);
+while (!selectSize(&gameSetup.size)) {
+    GameLogger::log("Enter the valid size of board: ", GameLogger::Level::DEBUG);
+}
 
-    // 4. Ask user for win condition (goal)
-    // showSelectMenu(SelectType::GOAL_UI);
-    // selectGoal(&gameSetup.goal, gameSetup.size);
-    showSelectMenu(SelectType::GOAL_UI);
-    while (!selectGoal(&gameSetup.goal, gameSetup.size)) {
-        std::cout << GameLogger::RED << "Enter the valid goal: " << GameLogger::RESET;
-    }
+showSelectMenu(SelectType::GOAL_UI);
+while (!selectGoal(&gameSetup.goal, gameSetup.size)) {
+    GameLogger::log("Enter the valid goal: ", GameLogger::Level::DEBUG);
+}
 
+showSelectMenu(SelectType::GAME_MODE_UI);
+while (!selectGameMode(&gameSetup.mode)) {
+    GameLogger::log("Enter the valid game mode: ", GameLogger::Level::DEBUG);
+}
 
-    // 5. Ask for game mode
-    // showSelectMenu(SelectType::GAME_MODE_UI);
-    // selectGameMode(&gameSetup.mode);
-    showSelectMenu(SelectType::GAME_MODE_UI);
-    while (!selectGameMode(&gameSetup.mode)) {
-        std::cout << GameLogger::RED << "Enter the valid game mode: " << GameLogger::RESET;
-    }
-    showSelectMenu(SelectType::EndRule_UI);
-    while (!selectEndRule(&gameSetup.endrule)) {
-        std::cout << GameLogger::RED << "Enter the valid end rule: " << GameLogger::RESET;
-    }
-    if (gameSetup.mode == GameMode::PVP) std::cout << GameLogger::GREEN << "Have fun!" << GameLogger::RESET;
-    // 6. If mode == PVE
-    // ask bot difficulty for player 2
-    if (gameSetup.mode == GameMode::PVE) {
-        std::cout << GameLogger::GREEN << "GameMode <PVE>\n" << GameLogger::RESET;
-        showSelectMenu(SelectType::BOT_LEVEL_UI);
-        while (!selectBotLevel(&gameSetup.levels[0], 0)) {
-            std::cout << GameLogger::RED << "Enter the valid level of bot: " << GameLogger::RESET;
-        }
-    }
-    // 7. If mode == EVE
-    // ask bot difficulty for both bots
-    if (gameSetup.mode == GameMode::EVE) {
-        // std::cout << GameLogger::GREEN << "GameMode <EVE>\n" << GameLogger::RESET;
-        showSelectMenu(SelectType::MUL_BOT_LEVEL_UI);
-        while (!selectBotLevel(&gameSetup.levels[0], 0) && !selectBotLevel(&gameSetup.levels[0], 1)) {
-            std::cout << GameLogger::RED << "Enter the valid level of bot 1, 2: " << GameLogger::RESET;
-        }
-    }
+showSelectMenu(SelectType::EndRule_UI);
+while (!selectEndRule(&gameSetup.endrule)) {
+    GameLogger::log("Enter the valid end rule: ", GameLogger::Level::DEBUG);
+}
 
+if (gameSetup.mode == GameMode::PVP) {
+    std::cout << GameLogger::GREEN << "Have fun!" << GameLogger::RESET;
+}
+
+if (gameSetup.mode == GameMode::PVE) {
+    std::cout << GameLogger::GREEN << "GameMode <PVE>\n" << GameLogger::RESET;
+    showSelectMenu(SelectType::BOT_LEVEL_UI);
+    while (!selectBotLevel(&gameSetup.levels[0], 0)) {
+        GameLogger::log("Enter the valid level of bot: ", GameLogger::Level::DEBUG);
+    }
+}
+
+if (gameSetup.mode == GameMode::EVE) {
+    showSelectMenu(SelectType::MUL_BOT_LEVEL_UI);
+    while (!selectBotLevel(&gameSetup.levels[0], 0) && !selectBotLevel(&gameSetup.levels[1], 1)) {
+        GameLogger::log("Enter the valid level of bot 1, 2: ", GameLogger::Level::DEBUG);
+    }
+}
     // 8. Initialize board
     initBoard(gameSetup.board, gameSetup.size);
 }
@@ -1602,139 +1590,245 @@ void startGame(const RunConfig& config,
 GameResult playGame(const RunConfig& config,
                     GameSetup& gameSetup) {
     GameResult result;
-
-    // TODO:
-    // 1. Initialize variables
-    //    - current player index
-    //    - symbol mapping ('X', 'O')
-    //    - turn counter
     bool isbot = false;
     int cur_player = 0;
     char symbols[2] = {'X', 'O'};
     int count = 0;
-    int row, col;
-    // Example idea:
-    // int currentPlayer = 0;
-    // char symbols[2] = {'X','O'};
-    // int turns = 0;
-
-    // 2. Main game loop
-    while(true) {
-        const char* modeNames[] = {"PvP", "PvE", "EvE"};
-        const char* ruleNames[] = {"None", "Open One", "Open Two"};
-
-        std::cout << GameLogger::GREEN 
-                << std::format("Game mode: {}, game rule: {}\n", 
-                                modeNames[(int)gameSetup.mode], 
-                                ruleNames[(int)gameSetup.endrule]) 
-                << GameLogger::RESET;
-    //      a) display board
-        displayBoard(gameSetup.board, gameSetup.size);
-
-    //      b) determine if player is human or bot
-        int turn_index = count % 2; // 0 hoặc 1
-        cur_player = turn_index;    // Để dùng cho mảng symbols[0] hoặc symbols[1]
-        switch (gameSetup.mode) {
-            case GameMode::PVP:
-                isbot = false;
-                break;
-            case GameMode::PVE:
-                isbot = (turn_index == 1); // 
-                break;
-            case GameMode::EVE:
-                isbot = true;
-                break;
-        }
-
-        showPlayer(cur_player, isbot); 
-
-    //      c) get move
-    //         human -> getPlayerMove()
-    //         bot   -> botMove()
-    if (!isbot) {
-        showSelectMenu(SelectType::PLAYER_UI);
-        getPlayerMove(&row, &col);
-    }
-    else if (isbot) {
-        pII point = measureExecutionTime(
-            "botMove",
-            [&]() {
-                return botMove(gameSetup.board,
-                            gameSetup.size,
-                            gameSetup.goal,
-                            symbols[cur_player],
-                            gameSetup.levels[cur_player]);
-            },
-            TIME_ENABLED);
-        row = point.first;
-        col = point.second;
-    }
-    //         log bot runtime ->
-
-    // // Running Bot Move with meansure runtime
-    // pII point = measureExecutionTime(
-    //     "botMove",
-    //     [&]() {
-    //         return botMove(gameSetup.board,
-    //                        gameSetup.size,
-    //                        gameSetup.goal,
-    //                        symbols[player],
-    //                        gameSetup.levels[player]);
-    //     },
-    //     TIME_ENABLED);
-
-    //      d) validate move
-    //         isValidMove(...)
+    int row = -1; int col = -1;
     
-    while (!isValidMove(gameSetup.board,
-                gameSetup.size,
-                row, col)) {
-        showInvalidMove();
-        if (!isbot) getPlayerMove(&row, &col);
-        else {
-            pII point = measureExecutionTime(
-            "botMove",
-            [&]() {
-                return botMove(gameSetup.board,
-                            gameSetup.size,
-                            gameSetup.goal,
-                            symbols[cur_player],
-                            gameSetup.levels[cur_player]);
-            },
-            TIME_ENABLED);
-        row = point.first;
-        col = point.second;
-        }
-        }
+    if (config.interactive) {
+        // TODO:
+        // 1. Initialize variables
+        //    - current player index
+        //    - symbol mapping ('X', 'O')
+        //    - turn counter
 
-    //      e) apply move
-    //         makeMove(...)
-    makeMove(gameSetup.board,
-            row, col,
-            symbols[cur_player]);
-    showMove(row, col, isbot);
-    //      f) check win
-    //         checkWin(...)
-    if (checkWin(gameSetup.board,
-            gameSetup.size,
-            symbols[cur_player],
-            gameSetup.goal,
-            gameSetup.endrule)) {
-                result.winner = cur_player;
-                break;
+        // Example idea:
+        // int currentPlayer = 0;
+        // char symbols[2] = {'X','O'};
+        // int turns = 0;
+
+        // 2. Main game loop
+        while(true) {
+            const char* modeNames[] = {"PvP", "PvE", "EvE"};
+            const char* ruleNames[] = {"None", "Open One", "Open Two"};
+
+            GameLogger::log(std::format("{}Game mode: {}, game rule: {}{}\n",
+                                    GameLogger::GREEN,
+                                    modeNames[(int)gameSetup.mode], 
+                                    ruleNames[(int)gameSetup.endrule],
+                                    GameLogger::RESET));
+        //      a) display board
+            displayBoard(gameSetup.board, gameSetup.size);
+
+        //      b) determine if player is human or bot
+            int turn_index = count % 2; // 0 hoặc 1
+            cur_player = turn_index;    // Để dùng cho mảng symbols[0] hoặc symbols[1]
+            switch (gameSetup.mode) {
+                case GameMode::PVP:
+                    isbot = false;
+                    break;
+                case GameMode::PVE:
+                    isbot = (turn_index == 1); // 
+                    break;
+                case GameMode::EVE:
+                    isbot = true;
+                    break;
+                default: break;
             }
 
-    //      g) check draw
-    //         checkDraw(...)
-    if (checkDraw(gameSetup.board,
-              gameSetup.size)) {
-                result.winner = -1;
-                break;
-              }
-    //      h) switch player
-    // cur_player = 1 - cur_player;
-    count++;
+            showPlayer(cur_player, isbot); 
+
+        //      c) get move
+        //         human -> getPlayerMove()
+        //         bot   -> botMove()
+        if (!isbot) {
+            showSelectMenu(SelectType::PLAYER_UI);
+            getPlayerMove(&row, &col);
         }
+        else if (isbot) {
+            pII point = measureExecutionTime(
+                "botMove",
+                [&]() {
+                    return botMove(gameSetup.board,
+                                gameSetup.size,
+                                gameSetup.goal,
+                                symbols[cur_player],
+                                gameSetup.levels[cur_player]);
+                },
+                TIME_ENABLED);
+            row = point.first;
+            col = point.second;
+        }
+        //         log bot runtime ->
+
+        // // Running Bot Move with meansure runtime
+        // pII point = measureExecutionTime(
+        //     "botMove",
+        //     [&]() {
+        //         return botMove(gameSetup.board,
+        //                        gameSetup.size,
+        //                        gameSetup.goal,
+        //                        symbols[player],
+        //                        gameSetup.levels[player]);
+        //     },
+        //     TIME_ENABLED);
+
+        //      d) validate move
+        //         isValidMove(...)
+        
+        while (!isValidMove(gameSetup.board,
+                    gameSetup.size,
+                    row, col)) {
+            showInvalidMove();
+            if (!isbot) getPlayerMove(&row, &col);
+            else {
+                pII point = measureExecutionTime(
+                "botMove",
+                [&]() {
+                    return botMove(gameSetup.board,
+                                gameSetup.size,
+                                gameSetup.goal,
+                                symbols[cur_player],
+                                gameSetup.levels[cur_player]);
+                },
+                TIME_ENABLED);
+            row = point.first;
+            col = point.second;
+            }
+            }
+
+        //      e) apply move
+        //         makeMove(...)
+        showMove(row, col, isbot);
+        makeMove(gameSetup.board,
+                row, col,
+                symbols[cur_player]);
+        //      f) check win
+        //         checkWin(...)
+        if (checkWin(gameSetup.board,
+                gameSetup.size,
+                symbols[cur_player],
+                gameSetup.goal,
+                gameSetup.endrule)) {
+                    result.winner = cur_player;
+                    break;
+                }
+
+        //      g) check draw
+        //         checkDraw(...)
+        if (checkDraw(gameSetup.board,
+                gameSetup.size)) {
+                    result.winner = -1;
+                    break;
+                }
+        //      h) switch player
+        // cur_player = 1 - cur_player;
+        count++;
+        }
+    } 
+    if (config.judge_mode) {
+        while(true) {
+
+            int turn_index = count % 2; // 0 hoặc 1
+            cur_player = turn_index;    // Để dùng cho mảng symbols[0] hoặc symbols[1]
+            switch (gameSetup.mode) {
+                case GameMode::PVP:
+                    isbot = false;
+                    break;
+                case GameMode::PVE:
+                    isbot = (turn_index == 1); // 
+                    break;
+                case GameMode::EVE:
+                    isbot = true;
+                    break;
+                default: break;
+            }
+
+        if (!isbot) {
+            getPlayerMove(&row, &col);
+        }
+        else if (isbot) {
+            pII point = measureExecutionTime(
+                "botMove",
+                [&]() {
+                    return botMove(gameSetup.board,
+                                gameSetup.size,
+                                gameSetup.goal,
+                                symbols[cur_player],
+                                gameSetup.levels[cur_player]);
+                },
+                TIME_ENABLED);
+            row = point.first;
+            col = point.second;
+        }
+        //         log bot runtime ->
+
+        // // Running Bot Move with meansure runtime
+        // pII point = measureExecutionTime(
+        //     "botMove",
+        //     [&]() {
+        //         return botMove(gameSetup.board,
+        //                        gameSetup.size,
+        //                        gameSetup.goal,
+        //                        symbols[player],
+        //                        gameSetup.levels[player]);
+        //     },
+        //     TIME_ENABLED);
+
+        //      d) validate move
+        //         isValidMove(...)
+        
+        while (!isValidMove(gameSetup.board,
+                    gameSetup.size,
+                    row, col)) {
+            if (!isbot) getPlayerMove(&row, &col);
+            else {
+                pII point = measureExecutionTime(
+                "botMove",
+                [&]() {
+                    return botMove(gameSetup.board,
+                                gameSetup.size,
+                                gameSetup.goal,
+                                symbols[cur_player],
+                                gameSetup.levels[cur_player]);
+                },
+                TIME_ENABLED);
+            row = point.first;
+            col = point.second;
+            GameLogger::log(std::format("Bot is calculating..."));
+            GameLogger::log(std::format("Bot {} placed {} at ({} {})", cur_player+1, symbols[cur_player], row, col));
+            }
+        }
+
+        //      e) apply move
+        //         makeMove(...)
+        makeMove(gameSetup.board,
+                row, col,
+                symbols[cur_player]);
+        //      f) check win
+        //         checkWin(...)
+        if (checkWin(gameSetup.board,
+                gameSetup.size,
+                symbols[cur_player],
+                gameSetup.goal,
+                gameSetup.endrule)) {
+                    result.winner = cur_player;
+                    break;
+                }
+
+        //      g) check draw
+        //         checkDraw(...)
+        if (checkDraw(gameSetup.board,
+                gameSetup.size)) {
+                    result.winner = -1;
+                    break;
+                }
+        //      h) switch player
+        // cur_player = 1 - cur_player;
+        count++;
+        }
+    }
     // 3. fill GameResult structure
     result.turns = count;
     result.isBot = isbot;
