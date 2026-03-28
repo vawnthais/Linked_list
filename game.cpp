@@ -738,7 +738,7 @@ bool checkDraw(char board[][BOARD_N_MAX], const int size);
  *
  * @return Coordinate of the chosen move
  */
-pII botMove(char board[][BOARD_N_MAX], const int size, const int goal, const char symbol, const BotLevel level);
+pII botMove(char board[][BOARD_N_MAX], const int size, const int goal, const char symbol, const BotLevel level, EndRule rule);
 
 // Level 1
 /**
@@ -766,7 +766,7 @@ pII random_pick(char board[][BOARD_N_MAX], const int size);
  *
  * @return Heuristically chosen move
  */
-pII simple_heuristic(char board[][BOARD_N_MAX], const int size, const int goal, const char botSymbol, const char playerSymbol);
+pII simple_heuristic(char board[][BOARD_N_MAX], const int size, const int goal, const char botSymbol, const char playerSymbol, EndRule rule);
 
 /*
  * NOTE FOR DEVELOPERS
@@ -1370,7 +1370,7 @@ void showSelectMenu(SelectType selectType) {
             std::cout << GameLogger::GREEN << "Select the mode [(0) PvP | (1) PvE | (2) EvE]: " << GameLogger::RESET;
             break;
         case SelectType::BOT_LEVEL_UI:
-            std::cout << GameLogger::GREEN << "Select the bot level [(0) EASY | (1) MEDIUM | (2) HARD]: " << GameLogger::RESET;
+            std::cout << GameLogger::GREEN << "Select the bot level [(0) EASY | (1) MEDIUM | (2) HARD (Hard mode coming soon!)]: " << GameLogger::RESET;
             break;
         case SelectType::PLAYER_UI:
             std::cout << GameLogger::BLUE << "Your turn!\n" << GameLogger::RESET;
@@ -1378,7 +1378,7 @@ void showSelectMenu(SelectType selectType) {
             break;
         case SelectType::MUL_BOT_LEVEL_UI:
             std::cout << GameLogger::GREEN << "Game mode: Bot vs Bot\n" << GameLogger::RESET;
-            std::cout << GameLogger::GREEN << "0: EASY, 1: MEDIUM, 2: HARD\n" << GameLogger::RESET;
+            std::cout << GameLogger::GREEN << "0: EASY, 1: MEDIUM, 2: HARD (Hard mode coming soon!)\n" << GameLogger::RESET;
             std::cout << GameLogger::GREEN << "Select multi bot levels (bot1_level, bot2_level): " << GameLogger::RESET;
             break;
         case SelectType::EndRule_UI:
@@ -1507,40 +1507,44 @@ showSelectMenu(SelectType::SIZE_UI);
 while (!selectSize(&gameSetup.size)) {
     GameLogger::log("Enter the valid size of board: ", GameLogger::Level::DEBUG);
 }
-
+std::cout<<"------------\n";
 showSelectMenu(SelectType::GOAL_UI);
 while (!selectGoal(&gameSetup.goal, gameSetup.size)) {
     GameLogger::log("Enter the valid goal: ", GameLogger::Level::DEBUG);
 }
-
+std::cout<<"------------\n";
 showSelectMenu(SelectType::GAME_MODE_UI);
 while (!selectGameMode(&gameSetup.mode)) {
     GameLogger::log("Enter the valid game mode: ", GameLogger::Level::DEBUG);
 }
-
+std::cout<<"------------\n";
 showSelectMenu(SelectType::EndRule_UI);
 while (!selectEndRule(&gameSetup.endrule)) {
     GameLogger::log("Enter the valid end rule: ", GameLogger::Level::DEBUG);
 }
-
+std::cout<<"------------\n";
 if (gameSetup.mode == GameMode::PVP) {
     std::cout << GameLogger::GREEN << "Have fun!" << GameLogger::RESET;
 }
-
+std::cout<<"------------\n";
 if (gameSetup.mode == GameMode::PVE) {
     std::cout << GameLogger::GREEN << "GameMode <PVE>\n" << GameLogger::RESET;
     showSelectMenu(SelectType::BOT_LEVEL_UI);
-    while (!selectBotLevel(&gameSetup.levels[0], 0)) {
+    while (!selectBotLevel(gameSetup.levels, 1)) {
         GameLogger::log("Enter the valid level of bot: ", GameLogger::Level::DEBUG);
     }
 }
-
+std::cout<<"------------\n";
 if (gameSetup.mode == GameMode::EVE) {
     showSelectMenu(SelectType::MUL_BOT_LEVEL_UI);
-    while (!selectBotLevel(&gameSetup.levels[0], 0) && !selectBotLevel(&gameSetup.levels[1], 1)) {
-        GameLogger::log("Enter the valid level of bot 1, 2: ", GameLogger::Level::DEBUG);
+    while (!selectBotLevel(gameSetup.levels, 0)) {
+        GameLogger::log("Enter the valid level of bot 1: ", GameLogger::Level::DEBUG);
+    }
+    while (!selectBotLevel(gameSetup.levels, 1)) {
+        GameLogger::log("Enter the valid level of bot 2: ", GameLogger::Level::DEBUG);
     }
 }
+std::cout<<"------------\n";
     // 8. Initialize board
     initBoard(gameSetup.board, gameSetup.size);
 }
@@ -1647,6 +1651,7 @@ GameResult playGame(const RunConfig& config,
             getPlayerMove(&row, &col);
         }
         else if (isbot) {
+            std::cout << "Bot level: " << (int)gameSetup.levels[cur_player] << "\n";
             pII point = measureExecutionTime(
                 "botMove",
                 [&]() {
@@ -1654,7 +1659,8 @@ GameResult playGame(const RunConfig& config,
                                 gameSetup.size,
                                 gameSetup.goal,
                                 symbols[cur_player],
-                                gameSetup.levels[cur_player]);
+                                gameSetup.levels[cur_player],
+                                gameSetup.endrule);
                 },
                 TIME_ENABLED);
             row = point.first;
@@ -1690,7 +1696,8 @@ GameResult playGame(const RunConfig& config,
                                 gameSetup.size,
                                 gameSetup.goal,
                                 symbols[cur_player],
-                                gameSetup.levels[cur_player]);
+                                gameSetup.levels[cur_player],
+                                gameSetup.endrule);                
                 },
                 TIME_ENABLED);
             row = point.first;
@@ -1756,7 +1763,8 @@ GameResult playGame(const RunConfig& config,
                                 gameSetup.size,
                                 gameSetup.goal,
                                 symbols[cur_player],
-                                gameSetup.levels[cur_player]);
+                                gameSetup.levels[cur_player],
+                                gameSetup.endrule);
                 },
                 TIME_ENABLED);
             row = point.first;
@@ -1791,7 +1799,8 @@ GameResult playGame(const RunConfig& config,
                                 gameSetup.size,
                                 gameSetup.goal,
                                 symbols[cur_player],
-                                gameSetup.levels[cur_player]);
+                                gameSetup.levels[cur_player],
+                                gameSetup.endrule);
                 },
                 TIME_ENABLED);
             row = point.first;
@@ -1991,6 +2000,7 @@ bool isEmptyHead(char board[][BOARD_N_MAX],
  *   true  -> player wins
  *   false -> no win detected
  */
+
 bool checkWin(char board[][BOARD_N_MAX],
               const int size,
               const char symbol,
@@ -2142,8 +2152,11 @@ pII botMove(char board[][BOARD_N_MAX],
             const int size,
             const int goal,
             const char symbol,
-            const BotLevel level) {
+            const BotLevel level,
+            EndRule rule) {
+    std::cout << "botMove symbol: " << symbol << "\n";
     char opponent = (symbol == 'X') ? 'O' : 'X';
+    std::cout << "opponent: " << opponent << "\n";
 
     switch (level) {
         case BotLevel::EASY:
@@ -2156,8 +2169,7 @@ pII botMove(char board[][BOARD_N_MAX],
             // - try winning move
             // - block opponent winning move
             // - otherwise choose a heuristic position
-
-            return simple_heuristic(board, size, goal, symbol, opponent);
+            return simple_heuristic(board, size, goal, symbol, opponent, rule);
 
         case BotLevel::HARD:
             // BONUS
@@ -2177,6 +2189,69 @@ pII botMove(char board[][BOARD_N_MAX],
     }
 }
 
+//func cho medium
+bool simulater(char board[][BOARD_N_MAX], const int size, const char symbol, const int row, const int col, const int goal, EndRule rule) {
+    if (board[row][col] != '-') return false;
+    board[row][col] = symbol;
+    bool win = checkWin(board, size, symbol, goal, rule);
+    board[row][col] = '-';
+    return win;
+
+}
+pII check_to_WinorBlock(char board[][BOARD_N_MAX],
+              const int size,
+              const char symbol,
+              const int goal,
+              EndRule rule) {
+    // TODO: student implementation
+    //check ngang
+    for (int row = 0; row < size; row++) {
+        for (int col = 0; col < size - 1; col++) {
+            if (board[row][col] != '-') continue;
+            if (simulater(board, size, symbol, row, col, goal, rule) == true) return {row, col};
+        }
+    }
+    return std::make_pair(-1, -1);
+}
+int count_longest_chainSymbol(char board[][BOARD_N_MAX],const int size,const int row, const int col, char symbol) {
+    int d_row[4] = {0, 1, 1, 1};
+    int d_col[4] = {1, 0, 1, -1};
+    int count_chain = 0;
+    for (int i=0; i < 4; i++) {
+            int count = 1;
+        for (int k = 1; k < size; k++) {
+            int count_row = row + d_row[i]*k;
+            int count_col = col + d_col[i]*k;
+            if (count_row >= 0 && count_row < size && count_col >= 0 && count_col < size && board[count_row][count_col] == symbol) count++;
+            else break;
+        }
+        for (int k = 1; k < size; k++) {
+            int count_row = row - d_row[i]*k;
+            int count_col = col - d_col[i]*k;
+            if (count_row >= 0 && count_row < size && count_col >= 0 && count_col < size && board[count_row][count_col] == symbol) count++;
+            else break;
+        }
+        if (count > count_chain) count_chain = count;
+    }
+    return count_chain;
+}
+pII extend_line(char board[][BOARD_N_MAX],
+              const int size,
+              const char symbol) {
+    pII should_move = {-1, -1};
+    int best_point = 0;
+    for (int row = 0; row < size; row++) {
+        for (int col = 0; col < size; col++) {
+            if (board[row][col] != '-') continue;
+            int score = count_longest_chainSymbol(board, size, row, col, symbol);
+            if (score > best_point) {
+                best_point = score;
+                should_move = {row, col};
+            }
+        }
+    }
+    return (best_point >= 2) ? should_move : std::make_pair(-1,-1);
+}
 // Level 1
 /* ---------- EASY BOT ---------- */
 /**
@@ -2208,7 +2283,7 @@ pII random_pick(char board[][BOARD_N_MAX],
         std::mt19937 gen(rd());
         std::uniform_int_distribution<> dis(0, move.size() -1);
 
-        int random_move = dis(generator);
+        int random_move = dis(gen);
         return move[random_move];
     }
     // placeholder
@@ -2238,12 +2313,24 @@ pII simple_heuristic(char board[][BOARD_N_MAX],
                      const int size,
                      const int goal,
                      const char botSymbol,
-                     const char playerSymbol) {
+                     const char playerSymbol,
+                     EndRule rule) {
     // TODO: student implementation
-    
-    // fallback
-    return random_pick(board, size);
-}
+    //check win or opponent win
+    pII move;
+    if (board[size/2][size/2] == '-') return {size/2, size/2};
+    move = check_to_WinorBlock(board, size, botSymbol, goal, rule);
+    if (move != std::make_pair(-1, -1)) return move;
+    move = check_to_WinorBlock(board, size, playerSymbol, goal, rule);
+    if (move != std::make_pair(-1, -1)) return move;
+    move = extend_line(board, size, botSymbol);
+    if (move != std::make_pair(-1, -1)) return move;
+    move = extend_line(board, size, playerSymbol);
+    if (move != std::make_pair(-1, -1)) return move;
+    move = random_pick(board, size);
+    if (move != std::make_pair(-1, -1)) return move;
+    return std::make_pair(-1, -1);
+}   
 
 // Level 3
 /* ---------- HARD BOT ---------- */
@@ -2332,7 +2419,6 @@ auto measureExecutionTime(const std::string& label, Function func, bool enabled)
         return result;
     }
 }
-
 /* ----------------------------------------------------- */
 /* -------------------- [MAIN GAME] -------------------- */
 /* ----------------------------------------------------- */
