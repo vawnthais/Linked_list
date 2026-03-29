@@ -423,7 +423,7 @@ struct GameSetup {
     int goal;
     GameMode mode;
     BotLevel levels[2];
-    EndRule endrule;
+    EndRule endrule = EndRule::OPEN_TWO;
 };
 
 /**
@@ -616,7 +616,7 @@ bool getInput(int* val);
 bool selectSize(int* size);
 bool selectGoal(int* goal, const int size);
 bool selectGameMode(GameMode* mode);
-bool slectEndRule(EndRule* rule);
+bool selectEndRule(EndRule* rule);
 bool selectBotLevel(BotLevel* levels, const int index);
 bool getPlayerMove(int* row, int* col);
 
@@ -1117,7 +1117,9 @@ bool getInput(int* val) {
     // TODO: implement input reading and validation
     std::string str;
     std::cin >> str;
-    if (!validateInput(str)) return false;
+    if (!validateInput(str)) {
+        return false;
+    }
     *val = std::stoi(str);
     return true;
 }
@@ -1169,8 +1171,10 @@ bool selectSize(int* size) {
  */
 bool selectGoal(int* goal, const int size) {
     // TODO: implement slecting game goal
-    if (!getInput(goal)) return false;
-    if (*goal > size || *goal < 3) return false;
+    int s_goal;
+    if (!getInput(&s_goal)) return false;
+    if (s_goal > size || s_goal < 3) return false;
+    *goal = s_goal;
     return true;
 }
 
@@ -1194,16 +1198,16 @@ bool selectGameMode(GameMode* mode) {
     // TODO: implement slecting game mode
     int s_mode;
     if (!getInput(&s_mode)) return false;
-    if (s_mode > 2 || s_mode < 0) return false;
-    *mode = (GameMode)s_mode;
+    if (s_mode > 3 || s_mode < 1) return false;
+    *mode = (GameMode)(s_mode -1);
     return true;
 }
 
 bool selectEndRule(EndRule* rule) {
     int endrule;
     if (!getInput(&endrule)) return false;
-    if (endrule > 2 || endrule < 0) return false;
-    *rule = (EndRule)endrule;
+    if (endrule > 3 || endrule < 1) return false;
+    *rule = (EndRule)(endrule-1);
     return true;
 }
 /**
@@ -1238,8 +1242,8 @@ bool selectBotLevel(BotLevel* levels, const int index) {
     // TODO: implement slecting bot level
     int lev;
     if (!getInput(&lev)) return false;
-    if (lev < 0 || lev > 2) return false;
-    levels[index] = (BotLevel)lev;
+    if (lev < 1 || lev > 3) return false;
+    levels[index] = (BotLevel)(lev-1);
     return true;
 }
 
@@ -1367,10 +1371,10 @@ void showSelectMenu(SelectType selectType) {
             std::cout << GameLogger::GREEN << "Select goal to win (3-5, goal <= size): " << GameLogger::RESET;
             break;
         case SelectType::GAME_MODE_UI:
-            std::cout << GameLogger::GREEN << "Select the mode [(0) PvP | (1) PvE | (2) EvE]: " << GameLogger::RESET;
+            std::cout << GameLogger::GREEN << "Select the mode [(1) PvP | (2) PvE | (3) EvE]: " << GameLogger::RESET;
             break;
         case SelectType::BOT_LEVEL_UI:
-            std::cout << GameLogger::GREEN << "Select the bot level [(0) EASY | (1) MEDIUM | (2) HARD (Hard mode coming soon!)]: " << GameLogger::RESET;
+            std::cout << GameLogger::GREEN << "Select the bot level [(1) EASY | (2) MEDIUM | (3) HARD (Hard mode coming soon!)]: " << GameLogger::RESET;
             break;
         case SelectType::PLAYER_UI:
             std::cout << GameLogger::BLUE << "Your turn!\n" << GameLogger::RESET;
@@ -1378,12 +1382,12 @@ void showSelectMenu(SelectType selectType) {
             break;
         case SelectType::MUL_BOT_LEVEL_UI:
             std::cout << GameLogger::GREEN << "Game mode: Bot vs Bot\n" << GameLogger::RESET;
-            std::cout << GameLogger::GREEN << "0: EASY, 1: MEDIUM, 2: HARD (Hard mode coming soon!)\n" << GameLogger::RESET;
+            std::cout << GameLogger::GREEN << "1: EASY, 2: MEDIUM, 3: HARD (Hard mode coming soon!)\n" << GameLogger::RESET;
             std::cout << GameLogger::GREEN << "Select multi bot levels (bot1_level, bot2_level): " << GameLogger::RESET;
             break;
         case SelectType::EndRule_UI:
             std::cout << GameLogger::GREEN << "Select game rule to win\n" << GameLogger::RESET;
-            std::cout << GameLogger::GREEN << "[0: NONE, 1: ONE_OPEN, 2: TWO_OPEN]: " << GameLogger::RESET;
+            std::cout << GameLogger::GREEN << "[1: NONE, 2: ONE_OPEN, 3: TWO_OPEN]: " << GameLogger::RESET;
         default:
             break;
     }
@@ -1418,24 +1422,24 @@ void displayBoard(const char board[][BOARD_N_MAX], const int size) {
 
 void showPlayer(int player, bool is_bot) {
     if (is_bot) {
-        std::cout << GameLogger::YELLOW << "Bot " << player << " is thinking...\n" << GameLogger::RESET;
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-        std::cout << GameLogger::GREEN << "Done!\n" << GameLogger::RESET;
+        GameLogger::log(std::format("{}Bot {} is thinking...{}", GameLogger::YELLOW, player, GameLogger::RESET), GameLogger::Level::MSG);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        GameLogger::log(std::format("{}Done!{}", GameLogger::GREEN, GameLogger::RESET), GameLogger::Level::MSG);
     } else {
-        std::cout << GameLogger::GREEN << "Player " << player + 1 << " turn\n" << GameLogger::RESET;
+        GameLogger::log(std::format("{}Player {} turn{}", GameLogger::GREEN, player, GameLogger::RESET), GameLogger::Level::MSG);
     }
 }
 
 void showMove(const int row, const int col, bool isbot) {
     if (!isbot)
-        std::cout << GameLogger::GREEN << "Player move to (" << row << "," << col << ")\n" << GameLogger::RESET;
+        GameLogger::log(std::format("{}Player move to ({},{}){}",  GameLogger::GREEN, row, col, GameLogger::RESET), GameLogger::Level::INFO);
     else
-        std::cout << GameLogger::YELLOW << "Bot move to (" << row << "," << col << ")\n" << GameLogger::RESET;
+        GameLogger::log(std::format("{}Bot move to ({},{}){}",  GameLogger::YELLOW, row, col, GameLogger::RESET), GameLogger::Level::INFO);
 }
 
 void showInvalidMove() {
-    std::cout << GameLogger::RED << "You can't move to this place\n" << GameLogger::RESET;
-    std::cout << GameLogger::RED << "Pls enter different coordinates.\n" << GameLogger::RESET;
+    GameLogger::log(std::format("{}You can't move to this place{}", GameLogger::RED, GameLogger::RESET), GameLogger::Level::DEBUG);
+    GameLogger::log(std::format("{}Pls enter different coordinates.{}", GameLogger::RED, GameLogger::RESET), GameLogger::Level::DEBUG);
 }
 
 void showResult(const int winner, const bool is_bot) {
@@ -1445,28 +1449,24 @@ void showResult(const int winner, const bool is_bot) {
         std::cout << GameLogger::BLUE << "     No one won this battle...   \n" << GameLogger::RESET;
     } else {
         if (is_bot) {
-            std::cout << GameLogger::RED << "   GAME OVER: Bot " << winner + 1<< " wins!  \n" << GameLogger::RESET;
+            std::cout << GameLogger::RED << "   GAME OVER: Bot " << winner << " wins!  \n" << GameLogger::RESET;
             std::cout << GameLogger::RED << "   Better luck next time!  \n" << GameLogger::RESET;
         } else {
             std::cout << GameLogger::GREEN << "     CONGRATULATIONS!!!       \n" << GameLogger::RESET;
-            std::cout << GameLogger::GREEN << "   Player " << winner + 1 << " is the winner! \n" << GameLogger::RESET;
+            std::cout << GameLogger::GREEN << "   Player " << winner  << " is the winner! \n" << GameLogger::RESET;
         }
     }
     std::cout << GameLogger::YELLOW << "==============================\n" << GameLogger::RESET;
 }
 
 void printResult(const GameResult& gameResult) {
-    if (gameResult.winner == -1) {
-        std::cout << GameLogger::BLUE << "[Game finished] Draw! | Total moves: " << gameResult.turns << ".\n" << GameLogger::RESET;
-    } else {
-        std::cout << GameLogger::GREEN << "[Game finished] Winner: Player " << gameResult.winner + 1 << " | Total moves: " << gameResult.turns << ".\n" << GameLogger::RESET;
-    }
+        std::cout << GameLogger::GREEN << gameResult.winner << " " << gameResult.turns << "\n" << GameLogger::RESET;
 }
 
 /* ---------- Game Engine ---------- */
 /**
  * ============================================================
- * GAME ENGINE MODULE (STUDENT IMPLEMENTATION)
+ * GAME ENGINE MODULE (STUDENT IMPLEMENTsATION)
  * ============================================================
  *
  * This module controls the overall flow of the game.
@@ -1500,54 +1500,65 @@ void startGame(const RunConfig& config,
                GameSetup& gameSetup) {
     // TODO:
     // 1. Clear screen if interactive mode
-if (config.interactive) clearScreen();
-showSelectMenu(SelectType::TITLE_UI);
+    if (config.interactive) {
+        clearScreen();
+        showSelectMenu(SelectType::TITLE_UI);
 
-showSelectMenu(SelectType::SIZE_UI);
-while (!selectSize(&gameSetup.size)) {
-    GameLogger::log("Enter the valid size of board: ", GameLogger::Level::DEBUG);
-}
-std::cout<<"------------\n";
-showSelectMenu(SelectType::GOAL_UI);
-while (!selectGoal(&gameSetup.goal, gameSetup.size)) {
-    GameLogger::log("Enter the valid goal: ", GameLogger::Level::DEBUG);
-}
-std::cout<<"------------\n";
-showSelectMenu(SelectType::GAME_MODE_UI);
-while (!selectGameMode(&gameSetup.mode)) {
-    GameLogger::log("Enter the valid game mode: ", GameLogger::Level::DEBUG);
-}
-std::cout<<"------------\n";
-showSelectMenu(SelectType::EndRule_UI);
-while (!selectEndRule(&gameSetup.endrule)) {
-    GameLogger::log("Enter the valid end rule: ", GameLogger::Level::DEBUG);
-}
-std::cout<<"------------\n";
-if (gameSetup.mode == GameMode::PVP) {
-    std::cout << GameLogger::GREEN << "Have fun!" << GameLogger::RESET;
-}
-std::cout<<"------------\n";
-if (gameSetup.mode == GameMode::PVE) {
-    std::cout << GameLogger::GREEN << "GameMode <PVE>\n" << GameLogger::RESET;
-    showSelectMenu(SelectType::BOT_LEVEL_UI);
-    while (!selectBotLevel(gameSetup.levels, 1)) {
-        GameLogger::log("Enter the valid level of bot: ", GameLogger::Level::DEBUG);
+        showSelectMenu(SelectType::SIZE_UI);
+        while (!selectSize(&gameSetup.size)) {
+            GameLogger::log("Enter the valid size of board: ", GameLogger::Level::DEBUG);
+        }
+        std::cout<<"------------\n";
+        showSelectMenu(SelectType::GOAL_UI);
+        while (!selectGoal(&gameSetup.goal, gameSetup.size)) {
+            GameLogger::log("Enter the valid goal: ", GameLogger::Level::DEBUG);
+        }
+        std::cout<<"------------\n";
+        showSelectMenu(SelectType::GAME_MODE_UI);
+        while (!selectGameMode(&gameSetup.mode)) {
+            GameLogger::log("Enter the valid game mode: ", GameLogger::Level::DEBUG);
+        }
+        std::cout<<"------------\n";
+        showSelectMenu(SelectType::EndRule_UI);
+        while (!selectEndRule(&gameSetup.endrule)) {
+            GameLogger::log("Enter the valid end rule: ", GameLogger::Level::DEBUG);
+        }
+        std::cout<<"------------\n";
+        if (gameSetup.mode == GameMode::PVP) {
+            std::cout << GameLogger::GREEN << "Have fun!" << GameLogger::RESET;
+        }
+        std::cout<<"------------\n";
+        if (gameSetup.mode == GameMode::PVE) {
+            std::cout << GameLogger::GREEN << "GameMode <PVE>\n" << GameLogger::RESET;
+            showSelectMenu(SelectType::BOT_LEVEL_UI);
+            while (!selectBotLevel(gameSetup.levels, 1)) {
+                GameLogger::log("Enter the valid level of bot: ", GameLogger::Level::DEBUG);
+            }
+        }
+        std::cout<<"------------\n";
+        if (gameSetup.mode == GameMode::EVE) {
+            showSelectMenu(SelectType::MUL_BOT_LEVEL_UI);
+            while (!selectBotLevel(gameSetup.levels, 0)) {
+                GameLogger::log("Enter the valid level of bot 1: ", GameLogger::Level::DEBUG);
+            }
+            while (!selectBotLevel(gameSetup.levels, 1)) {
+                GameLogger::log("Enter the valid level of bot 2: ", GameLogger::Level::DEBUG);
+            }
+        }
+        std::cout<<"------------\n";
+            // 8. Initialize board
+            initBoard(gameSetup.board, gameSetup.size);
+    } 
+    if (config.judge_mode) {
+        while (!selectSize(&gameSetup.size));
+
+        while (!selectGoal(&gameSetup.goal, gameSetup.size));
+
+        while (!selectGameMode(&gameSetup.mode));
+
+        initBoard(gameSetup.board, gameSetup.size);
     }
-}
-std::cout<<"------------\n";
-if (gameSetup.mode == GameMode::EVE) {
-    showSelectMenu(SelectType::MUL_BOT_LEVEL_UI);
-    while (!selectBotLevel(gameSetup.levels, 0)) {
-        GameLogger::log("Enter the valid level of bot 1: ", GameLogger::Level::DEBUG);
-    }
-    while (!selectBotLevel(gameSetup.levels, 1)) {
-        GameLogger::log("Enter the valid level of bot 2: ", GameLogger::Level::DEBUG);
-    }
-}
-std::cout<<"------------\n";
-    // 8. Initialize board
-    initBoard(gameSetup.board, gameSetup.size);
-}
+};
 
 /**
  * Core game loop.
@@ -1711,6 +1722,7 @@ GameResult playGame(const RunConfig& config,
         makeMove(gameSetup.board,
                 row, col,
                 symbols[cur_player]);
+        count++;
         //      f) check win
         //         checkWin(...)
         if (checkWin(gameSetup.board,
@@ -1731,7 +1743,6 @@ GameResult playGame(const RunConfig& config,
                 }
         //      h) switch player
         // cur_player = 1 - cur_player;
-        count++;
         }
     } 
     if (config.judge_mode) {
@@ -1770,22 +1781,6 @@ GameResult playGame(const RunConfig& config,
             row = point.first;
             col = point.second;
         }
-        //         log bot runtime ->
-
-        // // Running Bot Move with meansure runtime
-        // pII point = measureExecutionTime(
-        //     "botMove",
-        //     [&]() {
-        //         return botMove(gameSetup.board,
-        //                        gameSetup.size,
-        //                        gameSetup.goal,
-        //                        symbols[player],
-        //                        gameSetup.levels[player]);
-        //     },
-        //     TIME_ENABLED);
-
-        //      d) validate move
-        //         isValidMove(...)
         
         while (!isValidMove(gameSetup.board,
                     gameSetup.size,
@@ -1805,8 +1800,6 @@ GameResult playGame(const RunConfig& config,
                 TIME_ENABLED);
             row = point.first;
             col = point.second;
-            GameLogger::log(std::format("Bot is calculating..."));
-            GameLogger::log(std::format("Bot {} placed {} at ({} {})", cur_player+1, symbols[cur_player], row, col));
             }
         }
 
@@ -1815,6 +1808,7 @@ GameResult playGame(const RunConfig& config,
         makeMove(gameSetup.board,
                 row, col,
                 symbols[cur_player]);
+        count++;
         //      f) check win
         //         checkWin(...)
         if (checkWin(gameSetup.board,
@@ -1835,7 +1829,6 @@ GameResult playGame(const RunConfig& config,
                 }
         //      h) switch player
         // cur_player = 1 - cur_player;
-        count++;
         }
     }
     // 3. fill GameResult structure
@@ -1852,6 +1845,7 @@ void endGame(const RunConfig& config,
     //      clear screen
     //      display final board
     //      show result
+    GameLogger::log("startGame done", GameLogger::Level::DEBUG);
     if (config.interactive) {
         clearScreen();
         displayBoard(gameSetup.board, gameSetup.size);
@@ -2154,9 +2148,7 @@ pII botMove(char board[][BOARD_N_MAX],
             const char symbol,
             const BotLevel level,
             EndRule rule) {
-    std::cout << "botMove symbol: " << symbol << "\n";
     char opponent = (symbol == 'X') ? 'O' : 'X';
-    std::cout << "opponent: " << opponent << "\n";
 
     switch (level) {
         case BotLevel::EASY:
@@ -2461,6 +2453,7 @@ int main(int argc, char* argv[]) {
     GameLogger::log("GameLogger initialized!");
 
     std::streambuf* cin_backup = initInteraction(config);
+
     GameLogger::log("GameInteraction initialized!");
 
     GameSetup gameSetup;
